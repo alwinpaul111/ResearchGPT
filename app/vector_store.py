@@ -107,6 +107,9 @@ def get_first_page_chunks():
     except Exception:
         pass
     return results
+
+
+def index_exists() -> bool:
     if VECTOR_BACKEND == "chroma":
         return os.path.exists(CHROMA_PERSIST_DIR) and bool(os.listdir(CHROMA_PERSIST_DIR))
     return os.path.exists(FAISS_INDEX_PATH)
