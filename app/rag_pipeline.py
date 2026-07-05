@@ -77,8 +77,35 @@ def _build_context(results) -> str:
     return "\n\n".join(blocks)
 
 
+SUMMARY_TRIGGERS = (
+    "what is this paper about",
+    "what is the paper about",
+    "summarize this paper",
+    "summarize the paper",
+    "give me a summary",
+    "what does this paper discuss",
+)
+
+
+def _is_broad_summary_question(question: str) -> bool:
+    q = question.lower().strip()
+    return any(trigger in q for trigger in SUMMARY_TRIGGERS)
+
+
 def answer_question(question: str, memory: ConversationMemory = None, k: int = TOP_K) -> RAGResponse:
     results = similarity_search(question, k=k)
+
+    # Broad "what is this about" questions retrieve poorly with pure
+    # similarity search (no chunk closely matches such a generic query).
+    # For these, always pull in the earliest-page chunks too, since
+    # introductions/abstracts are what actually answer this kind of question.
+    if _is_broad_summary_question(question):
+        intro_results = similarity_search("introduction background overview objectives", k=k)
+        seen_ids = {doc.metadata.get("chunk_id") for doc, _ in results}
+        for doc, score in intro_results:
+            if doc.metadata.get("chunk_id") not in seen_ids:
+                results.append((doc, score))
+                seen_ids.add(doc.metadata.get("chunk_id"))
 
     if not results:
         return RAGResponse(
