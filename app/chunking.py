@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from typing import List
 import uuid
 
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from app.pdf_loader import PageContent
 from app.config import CHUNK_SIZE, CHUNK_OVERLAP
