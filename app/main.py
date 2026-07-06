@@ -1,5 +1,5 @@
 """
-FastAPI backend for ResearchGPT.
+FastAPI backend for PaperLens.
 
 Endpoints:
   POST /upload   - upload one or more PDFs, they get chunked + indexed
@@ -24,7 +24,7 @@ from app.ingest import ingest_pdfs
 from app.rag_pipeline import answer_question, ConversationMemory
 from app.vector_store import index_exists
 
-app = FastAPI(title="ResearchGPT API", description="RAG system for research paper Q&A", version="1.0.0")
+app = FastAPI(title="PaperLens API", description="RAG system for research paper Q&A", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
