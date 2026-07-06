@@ -6,8 +6,6 @@ LLM wrapper. Two free-tier-friendly backends are supported:
 2. HuggingFace Inference API - uses your existing `alwinn` HF account.
    Set HUGGINGFACEHUB_API_TOKEN.
 
-Both are swappable via LLM_PROVIDER in config.py so you can demo/discuss
-provider tradeoffs (latency, cost, self-hosting) in interviews.
 """
 import os
 from app.config import LLM_PROVIDER, GROQ_MODEL, HF_LLM_MODEL, LLM_TEMPERATURE, LLM_MAX_TOKENS
