@@ -1,8 +1,4 @@
-"""
-PDF text extraction.
-Uses PyMuPDF (fitz) because it preserves page numbers cleanly, which we
-need later for citations like [Doc: paper.pdf, Page: 4].
-"""
+
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List
