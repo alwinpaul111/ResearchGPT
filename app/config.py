@@ -1,8 +1,4 @@
-"""
-Central configuration for PaperLens.
-All tunable parameters live here so you can adjust the pipeline
-without touching the core logic.
-"""
+
 import os
 from pathlib import Path
 
