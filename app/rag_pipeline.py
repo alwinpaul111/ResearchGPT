@@ -13,7 +13,7 @@ from app.vector_store import similarity_search, get_first_page_chunks
 from app.llm import generate_answer
 from app.config import MAX_HISTORY_TURNS, TOP_K
 
-MAX_BROAD_QUESTION_CHUNKS = 8
+MAX_BROAD_QUESTION_CHUNKS = 12
 
 
 @dataclass
@@ -56,6 +56,10 @@ class ConversationMemory:
 PROMPT_TEMPLATE = """You are PaperLens, an assistant that answers questions strictly using \
 the provided research paper excerpts. Follow these rules:
 - Only use information found in the CONTEXT below. If the answer isn't in the context, say so honestly.
+- The CONTEXT may contain excerpts from more than one document, each labeled with its document name.
+  If multiple documents appear, treat each one separately and address them individually rather than
+  blending their content together. Do not confuse a document's reference list (its bibliography,
+  citing other authors' work) with the content of the document itself.
 - When you state a fact, refer to it naturally (e.g. "According to the paper...").
 - Be precise and concise.
 - For multi-part answers, write each point as a short complete sentence on its own line,
@@ -90,17 +94,30 @@ SUMMARY_TRIGGERS = (
     "what is the paper about",
     "summarize this paper",
     "summarize the paper",
+    "summarize both",
+    "summarize each",
     "give me a summary",
     "what does this paper discuss",
     "who are the authors",
     "who is the author",
     "who wrote this paper",
+    "explain paper",
+    "explain both",
+    "compare the paper",
+    "compare both",
+    "what are these papers",
+    "what are the papers",
 )
 
 
 def _is_broad_summary_question(question: str) -> bool:
     q = question.lower().strip()
-    return any(trigger in q for trigger in SUMMARY_TRIGGERS)
+    if any(trigger in q for trigger in SUMMARY_TRIGGERS):
+        return True
+    # Catches phrasing like "paper1 and paper2", "both papers", "each paper"
+    if ("paper1" in q or "paper 1" in q or "both papers" in q or "each paper" in q) :
+        return True
+    return False
 
 
 def answer_question(question: str, memory: ConversationMemory = None, k: int = TOP_K) -> RAGResponse:
