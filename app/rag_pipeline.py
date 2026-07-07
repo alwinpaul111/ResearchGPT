@@ -13,7 +13,8 @@ from app.vector_store import similarity_search, get_first_page_chunks
 from app.llm import generate_answer
 from app.config import MAX_HISTORY_TURNS, TOP_K
 
-MAX_BROAD_QUESTION_CHUNKS = 12
+MAX_BROAD_QUESTION_CHUNKS = 8
+MAX_CHUNKS_PER_DOC_FOR_BROAD_QUESTIONS = 3
 
 
 @dataclass
@@ -63,6 +64,11 @@ the provided research paper excerpts. Follow these rules:
 - If the question refers to "paper1", "paper2", "the first paper", "the second paper", or similar,
   this means the first and second documents listed in the CONTEXT by upload order, not a literal
   search for text matching "paper1". Map these references to the actual document names shown.
+- Write your answer as clean prose in your own words. Do not copy structural labels like
+  "[Page 3]" or "=== Document: ... ===" into your answer — those are for your reference only.
+  Do not repeat the same sentence more than once.
+- Answer only the QUESTION given below. Do not invent, ask, or answer any other question,
+  and do not continue the conversation past your answer to this one question.
 - When you state a fact, refer to it naturally (e.g. "According to the paper...").
 - Be precise and concise.
 - For multi-part answers, write each point as a short complete sentence on its own line,
@@ -155,9 +161,22 @@ def answer_question(question: str, memory: ConversationMemory = None, k: int = T
                 results.append((doc, score))
                 seen_ids.add(doc.metadata.get("chunk_id"))
 
+        # Cap chunks per document first, so with multiple documents no single
+        # one dominates the context and every document stays represented.
+        per_doc_counts = {}
+        capped_results = []
+        for doc, score in results:
+            name = doc.metadata["doc_name"]
+            per_doc_counts[name] = per_doc_counts.get(name, 0)
+            if per_doc_counts[name] < MAX_CHUNKS_PER_DOC_FOR_BROAD_QUESTIONS:
+                capped_results.append((doc, score))
+                per_doc_counts[name] += 1
+        results = capped_results
+
         # Cap total chunks sent to the LLM - merging in page-1 + intro search
         # on top of the original top-k can otherwise blow past the LLM
-        # provider's tokens-per-minute rate limit on a single request.
+        # provider's tokens-per-minute rate limit on a single request, and
+        # overwhelm a small model's ability to synthesize coherently.
         results = results[:MAX_BROAD_QUESTION_CHUNKS]
 
     if not results:
