@@ -60,6 +60,9 @@ the provided research paper excerpts. Follow these rules:
   If multiple documents appear, treat each one separately and address them individually rather than
   blending their content together. Do not confuse a document's reference list (its bibliography,
   citing other authors' work) with the content of the document itself.
+- If the question refers to "paper1", "paper2", "the first paper", "the second paper", or similar,
+  this means the first and second documents listed in the CONTEXT by upload order, not a literal
+  search for text matching "paper1". Map these references to the actual document names shown.
 - When you state a fact, refer to it naturally (e.g. "According to the paper...").
 - Be precise and concise.
 - For multi-part answers, write each point as a short complete sentence on its own line,
@@ -77,15 +80,24 @@ ANSWER:"""
 
 
 def _build_context(results, max_chars_per_chunk: int = 900) -> str:
-    blocks = []
-    for i, (doc, score) in enumerate(results, start=1):
-        text = doc.page_content
-        if len(text) > max_chars_per_chunk:
-            text = text[:max_chars_per_chunk] + "..."
-        blocks.append(
-            f"[Source {i} | {doc.metadata['doc_name']} | Page {doc.metadata['page_number']}]\n"
-            f"{text}"
-        )
+    # Group chunks by document name so the LLM sees "N excerpts from document X",
+    # not a flat numbered list that can be misread as N separate documents.
+    by_doc = {}
+    for doc, score in results:
+        name = doc.metadata["doc_name"]
+        by_doc.setdefault(name, []).append(doc)
+
+    doc_names = list(by_doc.keys())
+    blocks = [f"There are {len(doc_names)} document(s) in this context: {', '.join(doc_names)}.\n"]
+
+    for name, docs in by_doc.items():
+        blocks.append(f"=== Document: {name} ({len(docs)} excerpt(s)) ===")
+        for doc in docs:
+            text = doc.page_content
+            if len(text) > max_chars_per_chunk:
+                text = text[:max_chars_per_chunk] + "..."
+            blocks.append(f"[Page {doc.metadata['page_number']}]\n{text}")
+
     return "\n\n".join(blocks)
 
 
