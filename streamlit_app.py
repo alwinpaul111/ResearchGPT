@@ -92,9 +92,18 @@ with st.sidebar:
         with st.spinner("Extracting text, chunking, and embedding..."):
             try:
                 result = do_upload(uploaded_files)
+                st.session_state.chat_history = []
+                if RUN_MODE == "direct":
+                    st.session_state.memory.clear()
+                else:
+                    try:
+                        requests.post(f"{API_URL}/reset", params={"session_id": st.session_state.session_id})
+                    except requests.RequestException:
+                        pass
                 st.success(
                     f"Indexed {result['documents_processed']} document(s), "
-                    f"{result['pages_processed']} pages, {result['chunks_created']} chunks."
+                    f"{result['pages_processed']} pages, {result['chunks_created']} chunks. "
+                    f"Previous documents and conversation were replaced."
                 )
             except Exception as e:
                 st.error(f"Failed to process PDFs: {e}")
