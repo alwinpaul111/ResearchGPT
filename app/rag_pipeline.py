@@ -85,6 +85,17 @@ QUESTION: {question}
 ANSWER:"""
 
 
+def _strip_invented_followup(text: str) -> str:
+    """Defensive cleanup: even with explicit prompt instructions, models can
+    still append a self-invented 'Q: ... A: ...' continuation past the real
+    answer. Truncate at the first such marker if one appears."""
+    import re
+    match = re.search(r'\n\s*Q\s*[:.]', text)
+    if match:
+        text = text[:match.start()].rstrip()
+    return text
+
+
 def _build_context(results, max_chars_per_chunk: int = 900) -> str:
     # Group chunks by document name so the LLM sees "N excerpts from document X",
     # not a flat numbered list that can be misread as N separate documents.
@@ -206,6 +217,7 @@ def answer_question(question: str, memory: ConversationMemory = None, k: int = T
     prompt = PROMPT_TEMPLATE.format(history=history, context=context, question=question)
 
     answer_text = generate_answer(prompt)
+    answer_text = _strip_invented_followup(answer_text)
 
     citations = [
         Citation(
