@@ -8,12 +8,13 @@ Core RAG orchestration:
 """
 from dataclasses import dataclass, field
 from typing import List, Dict
+import re
 
 from app.vector_store import similarity_search, get_first_page_chunks
 from app.llm import generate_answer
 from app.config import MAX_HISTORY_TURNS, TOP_K
 
-MAX_BROAD_QUESTION_CHUNKS = 8
+MAX_BROAD_QUESTION_CHUNKS = 10
 MAX_CHUNKS_PER_DOC_FOR_BROAD_QUESTIONS = 3
 
 
@@ -149,19 +150,11 @@ def _build_context(results, max_chars_per_chunk: int = 900) -> str:
 SUMMARY_TRIGGERS = (
     "what is this paper about",
     "what is the paper about",
-    "summarize this paper",
-    "summarize the paper",
-    "summarize both",
-    "summarize each",
     "give me a summary",
     "what does this paper discuss",
     "who are the authors",
     "who is the author",
     "who wrote this paper",
-    "explain paper",
-    "explain both",
-    "compare the paper",
-    "compare both",
     "what are these papers",
     "what are the papers",
 )
@@ -171,8 +164,25 @@ def _is_broad_summary_question(question: str) -> bool:
     q = question.lower().strip()
     if any(trigger in q for trigger in SUMMARY_TRIGGERS):
         return True
-    # Catches phrasing like "paper1 and paper2", "both papers", "each paper"
-    if ("paper1" in q or "paper 1" in q or "both papers" in q or "each paper" in q) :
+    # Catch any variant of "summarize"/"summary"/"summarise" regardless of
+    # what follows it ("summarize all three papers", "summarise each one",
+    # "give a summary of every paper", etc.) rather than matching a fixed
+    # list of exact phrases, which breaks on any new wording.
+    if "summar" in q:
+        return True
+    # Catch "explain"/"compare" combined with any mention of multiple papers.
+    if ("explain" in q or "compare" in q or "describe" in q) and (
+        "paper" in q or "document" in q
+    ):
+        return True
+    # Catch explicit multi-document references: "paper1", "both papers",
+    # "each paper", "all three papers", "every paper", numeric counts, etc.
+    if re.search(r'\bpaper\s*\d\b', q):
+        return True
+    if any(phrase in q for phrase in (
+        "both papers", "each paper", "all papers", "every paper",
+        "all three", "all the papers", "these papers", "these documents",
+    )):
         return True
     return False
 
