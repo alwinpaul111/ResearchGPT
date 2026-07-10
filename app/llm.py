@@ -1,4 +1,11 @@
+"""
+LLM wrapper. Two backends are supported:
 
+1. Groq (default) - free API key from console.groq.com. Set GROQ_API_KEY.
+2. HuggingFace Inference API - set HUGGINGFACEHUB_API_TOKEN.
+
+Swap via LLM_PROVIDER in config.py.
+"""
 import os
 from app.config import LLM_PROVIDER, GROQ_MODEL, HF_LLM_MODEL, LLM_TEMPERATURE, LLM_MAX_TOKENS
 
@@ -18,6 +25,7 @@ def _call_groq(prompt: str) -> str:
         messages=[{"role": "user", "content": prompt}],
         temperature=LLM_TEMPERATURE,
         max_tokens=LLM_MAX_TOKENS,
+        frequency_penalty=0.6,
     )
     return response.choices[0].message.content.strip()
 
