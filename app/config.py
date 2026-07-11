@@ -38,7 +38,7 @@ LLM_PROVIDER = os.getenv("LLM_PROVIDER", "groq")  # "groq" or "huggingface"
 GROQ_MODEL = "llama-3.3-70b-versatile"
 HF_LLM_MODEL = "mistralai/Mistral-7B-Instruct-v0.3"
 LLM_TEMPERATURE = 0.2
-LLM_MAX_TOKENS = 800
+LLM_MAX_TOKENS = 1100
 
 # ---------- Conversation memory ----------
 MAX_HISTORY_TURNS = 6  # how many past Q&A turns to keep in context
